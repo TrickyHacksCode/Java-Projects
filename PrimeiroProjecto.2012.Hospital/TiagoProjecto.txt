@@ -1,0 +1,370 @@
+import POO.*;
+import datagen.FichaUtente; 
+import datagen.GeradorDeFichas;
+
+import java.util.*;
+import java.io.*;
+
+public class Main {
+
+
+	public static final String HELP = "Ajuda";
+	public static final String SAIR = "S";
+	public static final String NOVA_CONSULTA = "NC";
+	public static final String CONSULTA_TERMINADA = "TC";
+	public static final String DISP_OCUPA_ESPERA = "OC";
+	public static final String LISTA_AGENTES_DISPONIVEIS = "LD";
+	public static final String LISTA_AGENTES_COM_UTENTE = "LO";
+	public static final String LISTA_AGENTES_ESPECIALIDADE = "LE";
+	public static final String LISTA_AGENTES = "LA";
+	public static final String LISTA_ESPERA = "LF";
+
+	public static void main(String[] args) {
+
+
+		UnidadeDeSaude uds = new UnidadeDeSaudeClass();
+
+		if(!uds.lerAgentesDeSaude())
+			System.out.println("Erro a ler Agentes de Saude");
+		if(!uds.lerUtentes())
+			System.out.println("Erro a ler Utentes");
+
+		Scanner in = new Scanner(System.in); 
+		String operacao;
+
+
+
+		do
+		{
+			operacao = in.nextLine();
+			if(operacao.equalsIgnoreCase(HELP)){
+				Help();
+			}
+			else if(operacao.equalsIgnoreCase(NOVA_CONSULTA)){
+				Novaconsulta(in, uds);
+			}
+			else if(operacao.equalsIgnoreCase(CONSULTA_TERMINADA)){
+				Consultafim(in, uds);
+			}
+			else if(operacao.equalsIgnoreCase(DISP_OCUPA_ESPERA)){
+				Dispconesp(in, uds);
+			}
+			else if(operacao.equalsIgnoreCase(LISTA_AGENTES_DISPONIVEIS)){
+				Agentedisp(in, uds);
+			}
+			else if(operacao.equalsIgnoreCase(LISTA_AGENTES_COM_UTENTE)){
+				Agenteocupado(in, uds);
+			}
+			else if(operacao.equalsIgnoreCase(LISTA_AGENTES_ESPECIALIDADE)){
+				Agenteespecial(in, uds);
+			}
+			else if(operacao.equalsIgnoreCase(LISTA_AGENTES)){
+				Agentes(in, uds);
+			}
+			else if(operacao.equalsIgnoreCase(LISTA_ESPERA)){
+				Listaesp(in, uds);
+			}
+			else
+				;
+
+		}while(!operacao.equals(SAIR));
+	}
+
+
+
+	public static void Help(){
+		System.out.println("Ajuda"); // check
+		System.out.println("S - Sair do programa"); // check
+		System.out.println("NC - Processar Nova Consulta"); // erro
+		System.out.println("TC - Dar uma consulta por Terminada"); // erro
+		System.out.println("OC - Números de agentes disponíveis, ocupados e fila de espera"); // check
+		System.out.println("LD - Listar agentes de saude disponiveis ");// check
+		System.out.println("LO - Listar agentes de saude com paciente atribuído");// check
+		System.out.println("LE - Listar agentes de saúde com determinada especialidade");// check
+		System.out.println("LA - Listar todos os agentes de saude");// check
+		System.out.println("LF - Listar utentes em fila de espera");// check
+	}
+
+	public static void Novaconsulta(Scanner in,UnidadeDeSaude UdS){
+		System.out.println(UdS.novaConsulta());
+	}
+
+	public static void Consultafim(Scanner in,UnidadeDeSaude UdS){
+
+	}
+
+	public static void Dispconesp(Scanner in,UnidadeDeSaude UdS){
+		System.out.println(UdS.resumo());
+	}
+
+	public static void Agentedisp(Scanner in,UnidadeDeSaude UdS){
+		System.out.println(UdS.listarAgentesDispo());
+		/*IteradorAgentesDisponiveis<AgenteDeSaude> it = UdS.listarAgentesDisponiveis();
+		it.init();
+		while (it.hasNext())
+			if(it.next())
+			System.out.println(it.next());*/
+	}
+
+	public static void Agenteocupado(Scanner in,UnidadeDeSaude UdS){
+		System.out.println(UdS.listarAgentesOcupa());
+	}
+
+	public static void Agenteespecial(Scanner in,UnidadeDeSaude UdS){
+		String especialidade = in.nextLine();
+		System.out.println(UdS.listardeacordocomesp(especialidade));
+	}
+
+	public static void Agentes(Scanner in,UnidadeDeSaude UdS){
+		System.out.println(UdS.listarAgentes());
+	}
+
+	public static void Listaesp(Scanner in,UnidadeDeSaude UdS){
+		System.out.println(UdS.listarespera());
+	}
+	/*public static void Agentedisp(Scanner in,UnidadeDeSaude UdS){
+
+		IteradorClass<AgenteDeSaude> it= UdS.listarAgentes();
+		while(it.hasNext()){
+			System.out.print(it.Next().getSigla());
+			System.out.print("\n");}
+	}*/
+}
+
+
+package POO;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+import datagen.FichaUtente;
+import datagen.GeradorDeFichas;
+
+public class UnidadeDeSaudeClass implements UnidadeDeSaude {
+
+	public static final int SEM_ESPECIALIDADE = 1;
+	public static final int CARDIOLOGIA = 2;
+	public static final int CLINICA_GERAL = 3;
+	public static final int NEUROLOGIA = 4;
+	public static final int ORTOPEDIA = 5;
+	public static final int OFTALMOLOGIA = 6;
+	public static final int PEDIATRIA = 7;
+	public static final int PNEUMONOLOGIA = 8;
+	public static final int UROLOGIA = 9;  
+
+	ArrayList<Utente> listadeutentes = new ArrayList<Utente>();
+	ArrayList<AgenteDeSaude> agentes = new ArrayList<AgenteDeSaude>();
+	ArrayList<Utente> listadeespera = new ArrayList<Utente>();
+
+	public boolean lerUtentes() {
+
+		GeradorDeFichas gdf = new GeradorDeFichas();
+
+		for(int i = 0; i < 50; i++) { // Substituir 50 por hasNExt()
+			FichaUtente fu = gdf.next();
+			Utente u = new UtenteClass(fu.nome(),fu.nrUtente(), fu.idade(), fu.urgencia(), fu.especialidade());
+			listadeutentes.add(u);
+		}
+
+		if(!listadeutentes.isEmpty())
+			return true;
+
+		return false;
+
+	}
+
+	public boolean lerAgentesDeSaude() {
+		try{
+			Scanner scan = new Scanner(new File("data/uds.txt"));
+			String line="";
+
+			while (scan.hasNextLine())
+			{
+				line = scan.nextLine();
+				String[] split=line.split("\t");
+
+				AgenteDeSaude a = new AgenteDeSaudeClass(split[0], split[1]);
+				agentes.add(a);
+			}
+			return true;
+		} catch (FileNotFoundException e){
+			return false;		}
+
+
+	}
+
+	public boolean escreverDados(String dados) throws IOException {
+		File file = new File("/data/listadeespera.txt");
+		file.createNewFile();
+		FileWriter writer = new FileWriter(file);
+		writer.write(dados); 
+		writer.flush();
+		writer.close();
+		return false;
+	}
+
+	public String convert(int value){
+		if(value ==  SEM_ESPECIALIDADE)
+			return "agente não especializado";
+		else if(value == CARDIOLOGIA)
+			return "CARDIOLOGIA";
+		else if(value == CLINICA_GERAL)
+			return "CLINICA GERAL";
+		else if(value == NEUROLOGIA)
+			return "NEUROLOGIA";
+		else if(value == ORTOPEDIA)
+			return "ORTOPEDIA";
+		else if(value == OFTALMOLOGIA)
+			return "OFTALMOLOGIA";
+		else if(value == PEDIATRIA)
+			return "PEDIATRIA";
+		else if(value == PNEUMONOLOGIA)
+			return "PNEUMONOLOGIA";
+		else
+			return "UROLOGIA";
+	}
+
+	public AgenteDeSaude medurg(int especialidade){
+		AgenteDeSaude med = null;
+		for (int i = 0; i < agentes.size(); i++) {
+			if(!agentes.get(i).ocupado() && agentes.get(i).especialidade() == especialidade)
+				return med = agentes.get(i);
+			else if(!agentes.get(i).ocupado() && agentes.get(i).temEspecialidade())
+				return med = agentes.get(i);
+			else if(agentes.get(i).ocupado() && agentes.get(i).especialidade() == especialidade && agentes.get(i).pacienteAtribuido().urgencia() == 1)
+				return med = agentes.get(i);
+			else if(agentes.get(i).ocupado() && agentes.get(i).temEspecialidade() && agentes.get(i).pacienteAtribuido().urgencia() == 1)
+				return med = agentes.get(i);
+		}
+		return med;
+	}
+
+	public AgenteDeSaude mednu(int especialidade){
+		AgenteDeSaude med = null;
+		for (int j = 0; j < agentes.size(); j++) {
+			if(!agentes.get(j).ocupado() && agentes.get(j).especialidade() == especialidade)
+				return med = agentes.get(j);
+		}
+		return null;
+	}
+
+
+	public AgenteDeSaude enfUrg(int especialidade){
+		AgenteDeSaude enf;
+		for (int i = 0; i < agentes.size(); i++){ 
+			if(!agentes.get(i).ocupado())
+				return enf = agentes.get(i);
+		}
+		return  enf = null;
+	}
+
+	/*public IteradorClass<AgenteDeSaude> listarAgentes(){
+		Iterador <AgenteDeSaude> it= new IteradorClass<AgenteDeSaude>(agentes.size(),agentes);
+		return (IteradorClass<AgenteDeSaude>) it;
+	}*/
+
+	public String novaConsulta() {
+		AgenteDeSaude med = null;
+		AgenteDeSaude enf = null;
+		Utente ut = null;
+		int counter = 0;
+		ut = listadeutentes.get(0);
+		if(ut.urgencia() == 2){
+			med = medurg(ut.especialidade());
+			enf = enfUrg(ut.especialidade());
+			enf.afectar(ut);
+			med.afectar(ut);
+		}
+		else 
+		{
+			med = mednu(ut.especialidade());
+			med.afectar(ut);
+		} 
+		if( med == null)
+			return "Deu entrada: " + ut.toString() + "\n" + ut.nome() + " atribuído a " + med.nome() + ";" + convert(med.especialidade());
+		// adicionar a ficheiro listadeespera.
+		return "Deu entrada: " + ut.toString() +  convert(ut.especialidade()) + "\n" + "Não há agentes de saude disponíveis para a especialidade " + convert(ut.especialidade()) + "\n" + "Utente " + ut.nome() + " colocado em lista de espera.";
+
+	}
+
+
+	public String listarAgentesDispo(){
+		String toprint = "";
+		for (int i = 0; i < agentes.size(); i++) {
+			if(!agentes.get(i).ocupado())
+				toprint += agentes.get(i).nome() + "; " + convert(agentes.get(i).especialidade()) + "\n"; 
+		}
+		return toprint;
+	}
+
+
+	public String resumo(){
+		int contador = 0;
+		int contador1 = 0;
+		for (int i = 0; i < agentes.size(); i++){
+			if(!agentes.get(i).ocupado())
+				contador++;
+			else
+				contador1++;
+		}
+		return "Agentes disponíveis: " + contador + "\n" + "Agentes ocupados: " + contador1 + "\n" +  "Utentes em fila de espera: " + listadeespera.size(); 
+	}
+
+
+	/*public ArrayList<AgenteDeSaude> listarAgentesDisp(){
+		return agentes;
+	}*/
+	public String listarAgentesOcupa(){
+		String toprint = "";
+		for (int i = 0; i < agentes.size(); i++) {
+			if(agentes.get(i).ocupado())
+				toprint += agentes.get(i).nome() + "; " + convert(agentes.get(i).especialidade()) + "a atender" + agentes.get(i).pacienteAtribuido().nome() + "\n"; 
+		}
+		return toprint;
+	}
+
+	public String listarAgentes() {
+		String toprint = "";
+		AgenteDeSaude med = null;
+		for (int i = 0; i < agentes.size(); i++) {
+			med = agentes.get(i);
+			if(med.ocupado()){
+				toprint += med.nome() + "; " + convert(med.especialidade()) + " a atender " + med.pacienteAtribuido().nome() +  "\n";
+			}
+				toprint += med.nome() + "; " + convert(med.especialidade()) + " dísponivel " + "\n"; 
+				
+		}
+		return toprint;
+	}
+	
+	public String listarespera(){
+		String toprint = "";
+		for (int i = 0; i < listadeespera.size(); i++) {
+				toprint += listadeespera.get(i).toString() + convert(listadeespera.get(i).especialidade()); 
+		}
+		return toprint;
+	}
+
+	public String listardeacordocomesp(String especialidade){
+		AgenteDeSaude med;
+		String esp = "";
+		String toprint = "";
+		for (int i = 0; i < agentes.size(); i++) {
+			med = agentes.get(i);
+			esp = convert(med.especialidade());
+			if(esp.equals(especialidade)){
+				toprint += med.nome() + "; " + convert(agentes.get(i).especialidade()) + "\n"; 
+			}
+		}
+		return toprint;
+	}
+
+	/*public IteradorAgentesDisponiveis<AgenteDeSaude> listarAgentesDisponiveis() {
+		// TODO Auto-generated method stub
+		return null;
+	}*/
+}
